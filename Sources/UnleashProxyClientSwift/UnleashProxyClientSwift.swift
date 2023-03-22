@@ -37,8 +37,9 @@ public class UnleashClient: ObservableObject {
     public var context: [String: String] = [:]
     var timer: Timer?
     var poller: Poller
-
-    public init(unleashUrl: String, clientKey: String, refreshInterval: Int? = nil, appName: String? = nil, environment: String? = nil, poller: Poller? = nil) {
+    var metrics: MetricsClient?
+    
+    public init(unleashUrl: String, clientKey: String, refreshInterval: Int? = nil, appName: String? = nil, environment: String? = nil, poller: Poller? = nil, metricsInterval: TimeInterval? = nil, metricsEnable: Bool = true) {
         self.context["appName"] = appName
         self.context["environment"] = environment
         self.timer = nil
@@ -47,7 +48,11 @@ public class UnleashClient: ObservableObject {
         } else {
             self.poller = Poller(refreshInterval: refreshInterval, unleashUrl: unleashUrl, apiKey: clientKey)
         }
-
+        if metricsEnable {
+            self.metrics = MetricsClient(unleashURL: unleashUrl, apiKey: clientKey, appName: appName)
+            //Default timeInterval 15sec
+            self.subscribe(name: "ready", callback: { self.metrics?.start(timeInterval: metricsInterval ?? 15) })
+        }
    }
 
     public func start(_ printToConsole: Bool = false, completionHandler: ((PollerError?) -> Void)? = nil) -> Void {
@@ -57,6 +62,7 @@ public class UnleashClient: ObservableObject {
 
     public func stop() -> Void {
         poller.stop()
+        metrics?.stop()
     }
 
     public func isEnabled(name: String) -> Bool {
@@ -64,7 +70,10 @@ public class UnleashClient: ObservableObject {
     }
 
     public func getVariant(name: String) -> Variant {
-        return poller.toggles[name]?.variant ?? Variant(name: "disabled", enabled: false, payload: nil)
+        let variant = poller.toggles[name]?.variant ?? Variant(name: "disabled", enabled: false, payload: nil)
+        metrics?.addMetrics(name: name, enable: poller.toggles[name]?.enabled ?? false)
+        
+        return variant
     }
 
     public func subscribe(name: String, callback: @escaping () -> Void) {
