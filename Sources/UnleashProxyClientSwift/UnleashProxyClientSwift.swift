@@ -49,15 +49,18 @@ public class UnleashClient: ObservableObject {
             self.poller = Poller(refreshInterval: refreshInterval, unleashUrl: unleashUrl, apiKey: clientKey)
         }
         if metricsEnable {
-            self.metrics = MetricsClient(unleashURL: unleashUrl, apiKey: clientKey, appName: appName)
+            self.metrics = MetricsClient(unleashURL: unleashUrl, apiKey: clientKey, appName: appName, timeInterval: metricsInterval ?? 15)
             //Default timeInterval 15sec
-            self.subscribe(name: "ready", callback: { self.metrics?.start(timeInterval: metricsInterval ?? 15) })
+            self.subscribe(name: "ready", callback: {
+                self.metrics?.start()
+            })
         }
    }
 
     public func start(_ printToConsole: Bool = false, completionHandler: ((PollerError?) -> Void)? = nil) -> Void {
         Printer.showPrintStatements = printToConsole
         poller.start(context: context, completionHandler: completionHandler)
+        metrics?.start()
     }
 
     public func stop() -> Void {

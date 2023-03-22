@@ -13,27 +13,32 @@ class MetricsClient {
     private let apiKey: String
     
     private var timer: Timer?
+    private var timeInterval: TimeInterval
     private let session: URLSession
     
     private var metrics: Metrics
     
-    init(unleashURL: String, apiKey: String, appName: String?, instanceId: String = "iosApp", session: URLSession = URLSession.shared) {
+    init(unleashURL: String, apiKey: String, appName: String?, instanceId: String = "iosApp", timeInterval: TimeInterval = 15, session: URLSession = URLSession.shared) {
         self.metricsURL = "\(unleashURL)/client/metrics"
         self.apiKey = apiKey
         self.metrics = Metrics(appName: appName ?? "iosApp", instanceId: instanceId)
         self.session = session
+        self.timeInterval = timeInterval
     }
     
-    func start(timeInterval: TimeInterval) {
+    func start() {
         //Create first bucket
         self.metrics.bucket = Metrics.Bucket(start: Date())
         
-        self.timer = Timer(timeInterval: timeInterval, repeats: true, block: {timer in
-            self.metrics.bucket?.end = Date()
+        let timer = Timer.scheduledTimer(withTimeInterval: self.timeInterval, repeats: true) {_ in
+            self.metrics.bucket?.stop = Date()
             self.sendMetrics()
             //reset bucket
             self.metrics.bucket = Metrics.Bucket(start: Date())
-        })
+        }
+        
+        self.timer = timer
+        RunLoop.current.add(timer, forMode: .default)
     }
     
     func stop(){
@@ -70,7 +75,12 @@ class MetricsClient {
         request.setValue(self.apiKey, forHTTPHeaderField: "Authorization")
         //request.setValue(self.etag, forHTTPHeaderField: "If-None-Match")
         
-        let jsonBody = try? JSONEncoder().encode(self.metrics)
+        let jsonEncoder = JSONEncoder()
+        let dateFormat = DateFormatter()
+        dateFormat.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        jsonEncoder.dateEncodingStrategy = .formatted(dateFormat)
+        let jsonBody = try? jsonEncoder.encode(self.metrics)
+        
         request.httpBody = jsonBody
         
         session.perform(request, completionHandler: {_,_,error in

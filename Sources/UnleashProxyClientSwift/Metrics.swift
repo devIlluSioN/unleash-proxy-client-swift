@@ -16,7 +16,7 @@ struct Metrics: Codable {
 extension Metrics {
     struct Bucket: Codable {
         var start: Date?
-        var end: Date?
+        var stop: Date?
         var toggles: [String: FlagMetric] = [:]
     }
     
