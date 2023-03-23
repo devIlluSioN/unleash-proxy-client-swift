@@ -69,13 +69,14 @@ public class UnleashClient: ObservableObject {
     }
 
     public func isEnabled(name: String) -> Bool {
-        return poller.toggles[name]?.enabled ?? false
+        let enable = poller.toggles[name]?.enabled ?? false
+        metrics?.addMetrics(name: name, enable: enable)
+        return enable
     }
 
     public func getVariant(name: String) -> Variant {
         let variant = poller.toggles[name]?.variant ?? Variant(name: "disabled", enabled: false, payload: nil)
         metrics?.addMetrics(name: name, enable: poller.toggles[name]?.enabled ?? false)
-        
         return variant
     }
 
