@@ -63,6 +63,14 @@ class MetricsClient {
         
     }
     
+    private func getPayloadFrom(metrics: Metrics) -> Data?{
+        let jsonEncoder = JSONEncoder()
+        let dateFormat = DateFormatter()
+        dateFormat.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        jsonEncoder.dateEncodingStrategy = .formatted(dateFormat)
+        return try? jsonEncoder.encode(metrics)
+    }
+    
     private func sendMetrics() {
         guard let url = URL(string: metricsURL) else {
             Printer.printMessage("Metrics URL not valid")
@@ -73,15 +81,8 @@ class MetricsClient {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(self.apiKey, forHTTPHeaderField: "Authorization")
-        //request.setValue(self.etag, forHTTPHeaderField: "If-None-Match")
         
-        let jsonEncoder = JSONEncoder()
-        let dateFormat = DateFormatter()
-        dateFormat.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-        jsonEncoder.dateEncodingStrategy = .formatted(dateFormat)
-        let jsonBody = try? jsonEncoder.encode(self.metrics)
-        
-        request.httpBody = jsonBody
+        request.httpBody = getPayloadFrom(metrics: self.metrics)
         
         session.perform(request, completionHandler: {_,_,error in
             if let error = error {
