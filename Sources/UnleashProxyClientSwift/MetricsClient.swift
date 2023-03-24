@@ -32,7 +32,9 @@ class MetricsClient {
         
         let timer = Timer.scheduledTimer(withTimeInterval: self.timeInterval, repeats: true) {_ in
             self.metrics.bucket?.stop = Date()
-            self.sendMetrics()
+            if !(self.metrics.bucket?.toggles.isEmpty ?? true) {
+                self.sendMetrics()
+            }
             //reset bucket
             self.metrics.bucket = Metrics.Bucket(start: Date())
         }
